@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<canvas id="cvs" height="600" width="800"
+        style="border:1px solid lightcoral;"
+></canvas>
+<button onclick="doAnimation()">Click Me</button>
+<script>
+    var cvs = document.getElementById('cvs');
+    var ctx = cvs.getContext('2d');
+    // 改一下线宽
+    ctx.lineWidth = '25';
+    ctx.lineCap = "round"; // 设置圆形线帽
+
+    ctx.fillStyle = 'rgba(255,255,255,1)';
+    ctx.fillRect(0, 0, 800, 600);
+
+    ctx.strokeStyle = 'green';
+
+    var x = 0, y = 0;
+    // 监听三个事件： 按下、移动、离开
+    cvs.addEventListener('mousedown', function (evt) {
+        x = evt.layerX;
+        y = evt.layerY;
+        ctx.moveTo(x, y);
+    });
+
+    cvs.addEventListener('mousemove', function (evt) {
+        x = evt.layerX;
+        y = evt.layerY;
+        // evt.which存储了鼠标按键的点击状态：1 为鼠标左键被点击
+        if (evt.which == 1) {
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            // 清理路径 （原因：每次mousemove都会给路径新增一段，久而久之就会卡起来）
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+    });
+
+</script>
+<script>
+    function doAnimation() {
+        // 1 获取像素数据
+        var imageData = ctx.getImageData(0, 0, 800, 600);
+        // 2 对像素数据做统计。得到可以绘制点的坐标。
+        var arr = [];
+        for (var i = 0; i < 600; i++) {
+            for (var j = 0; j < 800; j++) {
+                var index = ( 800 * i + j) * 4;
+                var r = imageData.data[index + 0];
+                var g = imageData.data[index + 1];
+                var b = imageData.data[index + 2];
+                var a = imageData.data[index + 3];
+                if (r + g + b < 600) {
+                    arr.push({x: j, y: i});
+                }
+
+            }
+        }
+
+//        console.log(arr);
+
+        // 3 从这些坐标中随机选择一部分，用来绘制小黄点
+        var particles = [];
+        for (var i = 0; i < 500; i++) {
+            var r = Math.floor(arr.length * Math.random());
+            var point = arr[r];
+            // 随机给小黄点取初始位置
+            point.startX = Math.random() * 800;
+            point.startY = Math.random() * 600;
+            particles.push(point);
+        }
+//
+//        ctx.fillStyle = 'yellow';
+//
+//        for (var i = 0; i < 500; i++) {
+//            var particle = particles[i];
+//            ctx.fillRect(particle.x, particle.y, 3, 3);
+//        }
+//
+//        ctx.fillStyle = 'blue';
+//
+//        for (var i = 0; i < 500; i++) {
+//            var particle = particles[i];
+//            ctx.fillRect(particle.startX, particle.startY, 3, 3);
+//        }
+
+        // 做一个两秒钟的动画，所有的小粒子都从起始点移动到最终。
+        var startTime = Date.now(); // 记录一下最开始的时间
+
+        var stop = false;
+
+        setTimeout(function () {
+            stop = true;
+        }, 2000);
+
+        function loop() {
+            var nowTime = Date.now(); // 这一帧的时间
+            var dt = nowTime - startTime; // 得到最开始到这一帧所消耗的时间
+
+            // 清空画布
+
+            ctx.clearRect(0, 0, 800, 600);
+
+            ctx.fillStyle = 'yellow';
+
+            // dt / 2000 能拿到“动画当前应该有的进度”
+            // 比如说我有一个动画要求小点从x==0运行到x==1000，两秒钟执行完
+            // 当dt= 1000时， dt/2000 = 0.5， 那么我们的x应该是多少？
+            //  0 + （1000 - 0） * （dt/2000）
+            for (var i = 0; i < 500; i++) {
+                var particle = particles[i];
+                var dx = (particle.x - particle.startX) * (dt / 2000);
+                var dy = (particle.y - particle.startY) * (dt / 2000);
+                ctx.fillRect(particle.startX + dx, particle.startY + dy, 3, 3);
+            }
+
+
+            if (stop) {
+                return;
+            }
+
+            requestAnimationFrame(function () {
+                loop();
+            })
+        }
+
+        loop();
+    }
+</script>
+</body>
+</html>
